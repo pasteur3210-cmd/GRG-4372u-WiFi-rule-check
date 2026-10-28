@@ -1,11 +1,11 @@
-# Shipping Data Validation Tool V1.1.1
+# Shipping Data Validation Tool V1.2.0
 
-Windows 10/11 GUI tool. Choose Excel input and output directory, review editable rules, click RUN VALIDATION. Outputs Summary, Detail, Failures and Rule Settings sheets plus EXECUTION and DEBUG logs.
+Windows 10/11 GUI tool. Select Excel shipment or DT writing log mode. Choose input and output directory, review editable rules, click RUN VALIDATION. Outputs Summary, Detail, Failures and Rule Settings sheets plus EXECUTION and DEBUG logs.
 
 ## Build EXE (no local Python required)
 1. Upload all files/folders in the Clean GitHub ZIP to a GitHub repo (including `.github/workflows/build.yml`).
 2. Select Actions > Build Windows EXE > Run workflow.
-3. Download `ShippingDataValidation_V1.1.1` artifact and run the EXE on Windows.
+3. Download `ShippingDataValidation_V1.2.0` artifact and run the EXE on Windows.
 
 ## Rule notes
 - SN/MAC must be within inclusive configurable boundaries; sequence gaps are allowed, but MAC addresses must correspond to SN positions using the configured allocation count.
@@ -20,5 +20,8 @@ Windows 10/11 GUI tool. Choose Excel input and output directory, review editable
 - The password policy is applied to WiFi fields only by default. Admin/User password requirements may differ.
 - Original Excel is read-only; outputs are new files. Reports contain actual passwords: handle as controlled confidential material.
 
-## V1.1.1 Windows GitHub Actions fix
+## V1.2.0 Windows GitHub Actions fix
 The read-only Excel input workbook is explicitly closed in a `finally` block, even when validation errors occur. The report workbook and unit-test fixture workbooks are also closed. This prevents Windows `PermissionError: [WinError 32]` when temporary directories are deleted.
+
+## DT writing log mode (V1.2.0)
+Select **DT writing log**, browse a `.log` or `.txt` file, and run. The parser reads MES field `cst7` (complete 2.4G SSID), WiFiSSIDSuffix `nvram set/get`, MES `cst10` (WiFi WPA key), and WiFiPwd `nvram set/get`. It verifies complete SSID prefix/suffix rules, key composition, and write/readback consistency. Missing evidence and conflicting values are FAIL. Log mode does not use shipment SN/MAC range settings. It does not prove the actual broadcast 5G SSID, randomness of password generation, or uniqueness across other devices. Source file is never overwritten. Exported workbook includes WPA keys and must be handled as confidential.

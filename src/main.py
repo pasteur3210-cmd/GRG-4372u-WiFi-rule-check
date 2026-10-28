@@ -2,6 +2,7 @@ import json,threading,tkinter as tk
 from tkinter import filedialog,messagebox,ttk
 from pathlib import Path
 from validator import DEFAULTS,analyze,VERSION
+from log_validator import analyze_log
 
 class App(tk.Tk):
  def __init__(self):
@@ -10,7 +11,12 @@ class App(tk.Tk):
   root=ttk.Frame(self,padding=12);root.pack(fill='both',expand=True)
   ttk.Label(root,text='Shipping Data Validation Tool V'+VERSION,font=('Segoe UI',16,'bold')).pack(anchor='w')
   row=ttk.Frame(root);row.pack(fill='x',pady=6)
-  ttk.Label(row,text='Input Excel').pack(side='left');ttk.Entry(row,textvariable=self.file).pack(side='left',fill='x',expand=True,padx=8)
+  self.mode=tk.StringVar(value='Excel shipment')
+  mod=ttk.Frame(root);mod.pack(fill='x',pady=5)
+  ttk.Label(mod,text='Validation mode').pack(side='left')
+  ttk.Radiobutton(mod,text='Excel shipment',variable=self.mode,value='Excel shipment').pack(side='left',padx=10)
+  ttk.Radiobutton(mod,text='DT writing log',variable=self.mode,value='DT writing log').pack(side='left')
+  ttk.Label(row,text='Input file').pack(side='left');ttk.Entry(row,textvariable=self.file).pack(side='left',fill='x',expand=True,padx=8)
   ttk.Button(row,text='Browse',command=self.browse).pack(side='left')
   row=ttk.Frame(root);row.pack(fill='x',pady=6)
   ttk.Label(row,text='Output folder').pack(side='left');ttk.Entry(row,textvariable=self.dest).pack(side='left',fill='x',expand=True,padx=8)
@@ -30,18 +36,20 @@ class App(tk.Tk):
   self.state=tk.StringVar(value='Ready');ttk.Label(footer,textvariable=self.state).pack(side='left',padx=15)
   self.console=tk.Text(root,height=6,wrap='word');self.console.pack(fill='x')
  def browse(self):
-  p=filedialog.askopenfilename(filetypes=[('Excel files','*.xlsx')]);
+  p=filedialog.askopenfilename(filetypes=[('Supported files','*.xlsx *.log *.txt'),('All files','*.*')]);
   if p:self.file.set(p);self.dest.set(str(Path(p).parent/'Shipping_Validation_Result'))
  def browse_out(self):
   p=filedialog.askdirectory();
   if p:self.dest.set(p)
  def run(self):
-  if not Path(self.file.get()).is_file():messagebox.showerror('Input','Choose valid xlsx');return
+  if not Path(self.file.get()).is_file():messagebox.showerror('Input','Choose valid input file');return
+  if self.mode.get()=='DT writing log' and Path(self.file.get()).suffix.lower() not in ('.log','.txt'):messagebox.showerror('Input','Choose .log or .txt');return
+  if self.mode.get()=='Excel shipment' and Path(self.file.get()).suffix.lower()!='.xlsx':messagebox.showerror('Input','Choose .xlsx');return
   if not self.dest.get():messagebox.showerror('Output','Choose output folder');return
   cfg={k:v.get() for k,v in self.controls.items()};self.go.state(['disabled']);self.state.set('Running...')
   def worker():
    try:
-    result=analyze(self.file.get(),self.dest.get(),cfg)
+    result=(analyze_log(self.file.get(),self.dest.get(),cfg) if self.mode.get()=='DT writing log' else analyze(self.file.get(),self.dest.get(),cfg))
     self.after(0,lambda:self.done(result))
    except Exception as ex:
     self.after(0,lambda msg=str(ex):self.error(msg))

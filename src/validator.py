@@ -6,7 +6,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-VERSION='1.1.1'
+VERSION='1.2.0'
 DEFAULTS={
  'sn_start':'26A4372UXXF-CF000001','sn_end':'26A4372UXXF-CF031000',
  'mac_start':'A01842F8D4B7','mac_end':'A01842FD8FA6',
