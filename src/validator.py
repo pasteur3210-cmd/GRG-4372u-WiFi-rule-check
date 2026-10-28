@@ -1,4 +1,4 @@
-"""Shipping Data Validation Tool V1.1.0. Python 3.11."""
+"""Shipping Data Validation Tool V1.1.1. Python 3.11."""
 from __future__ import annotations
 import collections, datetime, json, logging, re, secrets
 from pathlib import Path
@@ -6,7 +6,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-VERSION='1.1.0'
+VERSION='1.1.1'
 DEFAULTS={
  'sn_start':'26A4372UXXF-CF000001','sn_end':'26A4372UXXF-CF031000',
  'mac_start':'A01842F8D4B7','mac_end':'A01842FD8FA6',
@@ -63,10 +63,13 @@ def analyze(input_path, output_dir, config=None, progress=None):
  logger=logging.getLogger('ship_'+run);logger.setLevel(logging.DEBUG); logger.propagate=False
  f=logging.FileHandler(debug_path,encoding='utf-8');f.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'));logger.addHandler(f)
  log=open(execution_path,'w',encoding='utf-8')
+ input_wb=None
+ report_wb=None
  def emit(message):log.write(datetime.datetime.now().isoformat(timespec='seconds')+' '+message+'\n');log.flush();logger.info(message)
  try:
   emit('START version='+VERSION+' input='+str(input_path));logger.debug('CONFIG='+json.dumps(cfg,ensure_ascii=False))
-  ws=load_workbook(input_path,read_only=True,data_only=True).active
+  input_wb=load_workbook(input_path,read_only=True,data_only=True)
+  ws=input_wb.active
   itr=ws.iter_rows(values_only=True)
   headers=[clean(v) for v in next(itr)]
   if len(headers)!=len(set(headers)):raise ValueError('Duplicate column headers')
@@ -144,7 +147,7 @@ def analyze(input_path, output_dir, config=None, progress=None):
   counts=collections.Counter(code for _,_,p in items for _,code,_ in p)
   failed=sum(bool(p) for _,_,p in items);total=len(items)
   report_path=output_dir/f'Shipping_Validation_{run}.xlsx'
-  wb=Workbook();summary=wb.active;summary.title='Summary'
+  wb=Workbook();report_wb=wb;summary=wb.active;summary.title='Summary'
   for r in [('Shipping Data Validation','V'+VERSION),('Source file',Path(input_path).name),('Date',datetime.datetime.now().isoformat(timespec='seconds')),('Rows checked',total),('PASS',total-failed),('FAIL',failed),('Overall','PASS' if failed==0 else 'FAIL'),('Important','Random generation cannot be proven from Excel values alone.'),('Wi-Fi keys','Same key on 2.4G/5G of one device permitted; reuse across devices is FAIL.'),('MAC allocation',f'{mac_count} MAC/device; verify interval, alignment, SN mapping, and overlap'),('SSID duplicate','Allowed' if cfg['allow_duplicate_ssid'] else 'Not allowed')]:summary.append(r)
   summary.append([]);summary.append(['Error code','Count'])
   for code,n in sorted(counts.items()):summary.append([code,n])
@@ -163,9 +166,15 @@ def analyze(input_path, output_dir, config=None, progress=None):
     samples=[str(c.value or '') for c in list(col)[:50]]
     sheet.column_dimensions[get_column_letter(idx)].width=min(52,max(12,max(map(len,samples),default=12)+2))
   wb.save(report_path)
+  wb.close()
+  report_wb=None
   emit(f'FINISH total={total} pass={total-failed} fail={failed} report={report_path.name}')
   return {'report':str(report_path),'execution_log':str(execution_path),'debug_log':str(debug_path),'total':total,'pass':total-failed,'fail':failed,'errors':dict(counts)}
  except Exception:
   logger.exception('VALIDATION_FAILED');emit('ERROR: check debug log');raise
  finally:
+  # On Windows an openpyxl read-only workbook retains the source ZIP handle.
+  # TemporaryDirectory cleanup fails with WinError 32 unless it is closed.
+  if input_wb is not None:input_wb.close()
+  if report_wb is not None:report_wb.close()
   log.close();f.close();logger.removeHandler(f)

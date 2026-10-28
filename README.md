@@ -1,11 +1,11 @@
-# Shipping Data Validation Tool V1.1.0
+# Shipping Data Validation Tool V1.1.1
 
 Windows 10/11 GUI tool. Choose Excel input and output directory, review editable rules, click RUN VALIDATION. Outputs Summary, Detail, Failures and Rule Settings sheets plus EXECUTION and DEBUG logs.
 
 ## Build EXE (no local Python required)
 1. Upload all files/folders in the Clean GitHub ZIP to a GitHub repo (including `.github/workflows/build.yml`).
 2. Select Actions > Build Windows EXE > Run workflow.
-3. Download `ShippingDataValidation_V1.1.0` artifact and run the EXE on Windows.
+3. Download `ShippingDataValidation_V1.1.1` artifact and run the EXE on Windows.
 
 ## Rule notes
 - SN/MAC must be within inclusive configurable boundaries; sequence gaps are allowed, but MAC addresses must correspond to SN positions using the configured allocation count.
@@ -19,3 +19,6 @@ Windows 10/11 GUI tool. Choose Excel input and output directory, review editable
 - Uniqueness checks are limited to rows in the imported file, not prior manufacturing batches.
 - The password policy is applied to WiFi fields only by default. Admin/User password requirements may differ.
 - Original Excel is read-only; outputs are new files. Reports contain actual passwords: handle as controlled confidential material.
+
+## V1.1.1 Windows GitHub Actions fix
+The read-only Excel input workbook is explicitly closed in a `finally` block, even when validation errors occur. The report workbook and unit-test fixture workbooks are also closed. This prevents Windows `PermissionError: [WinError 32]` when temporary directories are deleted.
